@@ -1,6 +1,4 @@
 from ollama import chat 
-from ollama import ChatResponse
-import ollama
 
 def Querry_AI(query):
     context = {'role': 'system', 'content': 'You are an AI Assistant much like Jarvis from Iron Man. Keep responses human like, but short and concise at the same time.'}

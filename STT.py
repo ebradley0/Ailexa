@@ -1,37 +1,51 @@
 from RealtimeSTT import AudioToTextRecorder
+import threading
 from Ollama import Querry_AI
-import time
-
 class STT:
     def __init__(self):
         self.active = True
-        self.recorder = None
+        self.Wakerecorder = None
         self.response = None
-        self.responseRecorder = None
-        self.responseActive = False
         self.currentTime = None
+        self.responseActive = False
+        self.p1 = None
+        self.p2 = None
+        self.responseRecorder = None
         
-    
-    def responseListen(self):
-        self.currentTime = time.time()
-        while time.time() - self.currentTime < 5:
-            self.responseRecorder.listen()
-            self.responseRecorder.text(self.process_text)
-            
-        self.active = True
-        print("Response concluded, waiting for wake word again")
+    def listen_for_response(self):
+        print("Listening for response")
+        self.responseRecorder.listen()
+        self.responseRecorder.text(self.process_text)
         
+    def stop_response(self):
+        print("Stopping response")
+        self.responseRecorder.stop()
+        self.responseActive = False
+        text = self.responseRecorder.text() # Get the text from the recorder
         
+        if (text==""): ## If no response is detected, return to main loop by setting active to true
+            print("No response detected")
+            self.responseActive = False
+            self.active = True
+            return
+        else: #Repeat the process_text function with the response text
+            self.process_text(text)
+   
+       
+    def responseWindow(self):
+        print("Response Window")
+
+        self.responseRecorder.start()
+        self.responseActive = True
+        threading.Timer(5, self.stop_response).start() # Set a timer for 5 seconds to stop the response window)
         
     
     def process_text(self, text):
         print(text)
-        print("Process finished")
         self.active = False
         self.response = Querry_AI(text)
         print(self.response)
-        self.responseListen()
-
+        self.responseWindow()
 
 
 
@@ -47,13 +61,16 @@ class STT:
 
     def init_recorder(self):
         
-        self.recorder = AudioToTextRecorder(wake_words="computer", on_recording_start=self.recordingStarted, on_recording_stop=self.recordingEnded, post_speech_silence_duration=1)
-        self.responseRecorder = AudioToTextRecorder() #This way the user can respond without a wake word, more conversational
+        self.Wakerecorder = AudioToTextRecorder(wake_words="computer", on_recording_start=self.recordingStarted, on_recording_stop=self.recordingEnded, post_speech_silence_duration=1)
         print("Listening... for wake word")
+        self.responseRecorder = AudioToTextRecorder(post_speech_silence_duration=1)
+        self.Wakerecorder.listen()
         while True:
             if self.active:
-                self.recorder.listen()
-                self.recorder.text(self.process_text)
+                self.Wakerecorder.text(self.process_text)
+
+                
+
             
 
 

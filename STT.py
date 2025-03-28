@@ -1,6 +1,12 @@
 from RealtimeSTT import AudioToTextRecorder
 import threading
+from TTS.api import TTS
+import torch
+import requests
+import json
 from Ollama import Querry_AI
+import pyaudio
+import wave
 class STT:
     def __init__(self):
         self.active = True
@@ -8,12 +14,41 @@ class STT:
         self.response = None
         self.currentTime = None
         self.responseActive = False
-        self.p1 = None
-        self.p2 = None
         self.responseRecorder = None
+        self.URL = "http://localhost:7851/api/tts-generate"
+       
         
+    def speak(self, text):
+        print("Speaking")
+        
+        payload = {
+            "text_input": text,
+        }
+        print(json.dumps(payload))
+        response = requests.post(self.URL, data=payload)
+        if response.status_code == 200:
+            audio_data = response.content
+            with open("output.wav", "wb") as f:
+                f.write(audio_data)
+                print("Audio data written to output.wav")
+        else:
+            print(f"Error: {response.status_code} - {response.text}")
+
+        wavFile = wave.open("../alltalk_tts/outputs ", 'rb')
+        pyaud = pyaudio.PyAudio()
+        stream = pyaud.open(format=pyaudio.paInt16, channels=1, rate=22050, output=True)
+        data = wavFile.readframes(1024)
+        while data:
+            stream.write(data)
+            data = wavFile.readframes(1024) # Keep reading from the file until it is empty
+        wavFile.close()
+        stream.close()
+        pyaud.terminate()
+
+        
+
     def listen_for_response(self):
-        print("Listening for response")
+        
         self.responseRecorder.listen()
         self.responseRecorder.text(self.process_text)
         
@@ -33,11 +68,10 @@ class STT:
    
        
     def responseWindow(self):
-        print("Response Window")
 
         self.responseRecorder.start()
         self.responseActive = True
-        threading.Timer(5, self.stop_response).start() # Set a timer for 5 seconds to stop the response window)
+        threading.Timer(3, self.stop_response).start() # Set a timer for 5 seconds to stop the response window)
         
     
     def process_text(self, text):
@@ -45,16 +79,17 @@ class STT:
         self.active = False
         self.response = Querry_AI(text)
         print(self.response)
+        self.speak(self.response)
         self.responseWindow()
 
 
 
     def recordingStarted(self):
-        print("Recording Started")
+        pass
         
 
     def recordingEnded(self):
-        print("Recording Ended")
+        pass
         #This will shut off the recorder while Ollama processes the data
         self.active = False
 
@@ -62,7 +97,6 @@ class STT:
     def init_recorder(self):
         
         self.Wakerecorder = AudioToTextRecorder(wake_words="computer", on_recording_start=self.recordingStarted, on_recording_stop=self.recordingEnded, post_speech_silence_duration=1)
-        print("Listening... for wake word")
         self.responseRecorder = AudioToTextRecorder(post_speech_silence_duration=1)
         self.Wakerecorder.listen()
         while True:

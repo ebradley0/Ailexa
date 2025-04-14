@@ -7,6 +7,7 @@ import json
 from Ollama import Querry_AI
 import pyaudio
 import wave
+import shutil
 class STT:
     def __init__(self):
         self.active = True
@@ -28,13 +29,13 @@ class STT:
         response = requests.post(self.URL, data=payload)
         if response.status_code == 200:
             audio_data = response.content
-            with open("output.wav", "wb") as f:
-                f.write(audio_data)
-                print("Audio data written to output.wav")
+            source = response.json["output_file_path"]
+            shutil.copyfile(source, "output.wav")
+            print("Audio file saved as output.wav")
         else:
             print(f"Error: {response.status_code} - {response.text}")
 
-        wavFile = wave.open("../alltalk_tts/outputs ", 'rb')
+        wavFile = wave.open("output.wav", 'rb')
         pyaud = pyaudio.PyAudio()
         stream = pyaud.open(format=pyaudio.paInt16, channels=1, rate=22050, output=True)
         data = wavFile.readframes(1024)

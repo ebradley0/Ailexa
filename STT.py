@@ -1,7 +1,5 @@
 from RealtimeSTT import AudioToTextRecorder
 import threading
-from TTS.api import TTS
-import torch
 import requests
 import json
 from Ollama import Querry_AI

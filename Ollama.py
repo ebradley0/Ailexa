@@ -7,7 +7,7 @@ def Querry_AI(query):
    
     messages = [context, message]
     try:
-        stream = chat(model='llama3.2:latest',  messages=messages)
+        stream = chat(model='llama3.2:1b',  messages=messages)
     except Exception as e:
         print(f"Error connecting to Ollama: {e}")
     

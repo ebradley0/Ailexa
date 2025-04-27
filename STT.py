@@ -6,6 +6,7 @@ from Ollama import Querry_AI
 import pyaudio
 import wave
 import shutil
+import piper
 class STT:
     def __init__(self):
         self.active = True
@@ -14,25 +15,17 @@ class STT:
         self.currentTime = None
         self.responseActive = False
         self.responseRecorder = None
-        self.URL = "http://localhost:7851/api/tts-generate"
+        self.voice = piper.PiperVoice.load(model_path="./en_US-kusal-medium.onnx",  config_path="./en_US-kusal-medium.onnx.json", use_cuda=False )
+        
        
         
     def speak(self, text):
         print("Speaking")
         
-        payload = {
-            "text_input": text,
-        }
-        print(json.dumps(payload))
-        response = requests.post(self.URL, data=payload)
-        if response.status_code == 200:
-            audio_data = response.content
-            source = response.json["output_file_path"]
-            shutil.copyfile(source, "output.wav")
-            print("Audio file saved as output.wav")
-        else:
-            print(f"Error: {response.status_code} - {response.text}")
-
+        
+        
+        audio = self.voice.synthesize(text, speaker_id=0)
+        
         wavFile = wave.open("output.wav", 'rb')
         pyaud = pyaudio.PyAudio()
         stream = pyaud.open(format=pyaudio.paInt16, channels=1, rate=22050, output=True)

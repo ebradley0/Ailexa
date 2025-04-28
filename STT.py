@@ -16,7 +16,8 @@ class STT:
         self.currentTime = None
         self.responseActive = False
         self.responseRecorder = None
-        self.URL = "http://localhost:7851/api/tts-generate"
+        self.timer = None
+        self.text_buffer = []
        
         
     def speak(self, text):
@@ -47,40 +48,54 @@ class STT:
         pyaud.terminate()
 
         
-
-    def listen_for_response(self):
-        
-        self.responseRecorder.listen()
-        self.responseRecorder.text(self.process_text)
         
     def stop_response(self):
         print("Stopping response")
         self.responseRecorder.stop()
         self.responseActive = False
         text = self.responseRecorder.text() # Get the text from the recorder
+        self.text_buffer.append(text) # Append the text to the buffer
+        print("Text buffer: ", self.text_buffer)
         
-        if (text==""): ## If no response is detected, return to main loop by setting active to true
+        full_text = " ".join(self.text_buffer).strip() # Join the text in the buffer to a single string
+        
+        if (full_text==""): ## If no response is detected, return to main loop by setting active to true
             print("No response detected")
             self.responseActive = False
             self.active = True
-            return
+
         else: #Repeat the process_text function with the response text
             self.process_text(text)
    
        
     def responseWindow(self):
 
-        self.responseRecorder.start()
+        self.responseRecorder.start() # Set the text function to process_text, this actively transcribes the audio to text
         self.responseActive = True
-        threading.Timer(3, self.stop_response).start() # Set a timer for 5 seconds to stop the response window)
+        self.timer = threading.Timer(5, self.stop_response) # Set a timer for 5 seconds to stop the response window
         
+        self.timer.start() # Start the timer
+
+        self.responseRecorder.on_realtime_transcription_update = self.resetTimer # Reset the timer if there is a response detected
+        
+    def resetTimer(self, text):
+        if (text.strip() != ""): # If the text is not empty, append it to the buffer
+            self.text_buffer.append(text) # Append the text to the buffer
+
+
+        if self.timer:
+            print("Resetting timer")
+            self.timer.cancel() # Cancel the previous timer
+            self.timer = None # Reset the timer to None
+            self.timer = threading.Timer(5, self.stop_response) # Reset the timer to 5 seconds
+            self.timer.start()
     
     def process_text(self, text):
         print(text)
         self.active = False
         self.response = Querry_AI(text)
         print(self.response)
-        self.speak(self.response)
+        #self.speak(self.response)
         self.responseWindow()
 
 

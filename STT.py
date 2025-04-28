@@ -1,13 +1,12 @@
 from RealtimeSTT import AudioToTextRecorder
 import threading
-from TTS.api import TTS
-import torch
 import requests
 import json
 from Ollama import Querry_AI
 import pyaudio
 import wave
 import shutil
+import piper
 class STT:
     def __init__(self):
         self.active = True
@@ -23,19 +22,10 @@ class STT:
     def speak(self, text):
         print("Speaking")
         
-        payload = {
-            "text_input": text,
-        }
-        print(json.dumps(payload))
-        response = requests.post(self.URL, data=payload)
-        if response.status_code == 200:
-            audio_data = response.content
-            source = response.json["output_file_path"]
-            shutil.copyfile(source, "output.wav")
-            print("Audio file saved as output.wav")
-        else:
-            print(f"Error: {response.status_code} - {response.text}")
-
+        
+        
+        audio = self.voice.synthesize(text, speaker_id=0)
+        
         wavFile = wave.open("output.wav", 'rb')
         pyaud = pyaudio.PyAudio()
         stream = pyaud.open(format=pyaudio.paInt16, channels=1, rate=22050, output=True)
